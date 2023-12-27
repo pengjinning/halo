@@ -11,13 +11,17 @@ spring:
     ansi:
       enabled: detect
   r2dbc:
-    url: r2dbc:h2:file:///${halo.work-dir}/db/halo-next?MODE=MySQL&DB_CLOSE_ON_EXIT=FALSE
-    username: admin
-    password: 123456
+    # url: r2dbc:h2:file:///${halo.work-dir}/db/halo-next?MODE=MySQL&DB_CLOSE_ON_EXIT=FALSE
+    # username: admin
+    # password: 123456
+    url: r2dbc:pool:mysql://localhost:3306/halo
+    username: root
+    password: C8aJEVCCvSA1VFi8
   sql:
     init:
       mode: always
-      platform: h2
+      # platform: h2
+      platform: mysql
   codec:
     max-in-memory-size: 10MB
   messages:
