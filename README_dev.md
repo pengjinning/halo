@@ -17,4 +17,10 @@ export https_proxy=http://127.0.0.1:10818
 ./gradlew clean
 # 执行测试的任务：test
 ./gradlew test
+# 运行 ./gradlew bootRun 启动后，浏览器打开：http://localhost:8090/
+# 首次自动跳转 http://localhost:8090/console/setup
+# 设置用户名+密码
+# 邮箱：admin@test.com
+# 用户名：admin
+# 密码：admin
 ```
