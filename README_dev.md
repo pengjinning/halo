@@ -8,9 +8,10 @@ export http_proxy=http://127.0.0.1:10818
 export https_proxy=http://127.0.0.1:10818
 # 查询具体的任务信息的帮助
 ./gradlew help --task bootRun
-# 运行Spring Boot程序的task：bootRun
+# 启动Spring Boot
 ./gradlew bootRun
-# 编译可执行jar包task：build /bootJar
+# gradle bootRun
+# 编译可执行jar包
 ./gradlew bootJar
 # 清理build的任务：clean
 ./gradlew clean
