@@ -26,6 +26,7 @@ halo:
   plugin:
     runtime-mode: development # development, deployment
   work-dir: ${user.home}/halo2-dev
+
 logging:
   level:
     run.halo.app: DEBUG
