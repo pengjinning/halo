@@ -40,7 +40,7 @@ halo:
   caches:
     page:
       # Disable page cache by default due to experimental feature
-      disabled: true
+      disabled: false
   work-dir: ${user.home}/.halo2
   plugin:
     plugins-root: ${halo.work-dir}/plugins
