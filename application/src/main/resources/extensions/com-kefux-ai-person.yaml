@@ -1,0 +1,7 @@
+groupVersion: person.plugin.kefux.com/v1alpha1
+kind: Person
+metadata:
+  name: fake-person
+name: halo
+age: 18
+gender: male
