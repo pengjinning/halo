@@ -6,10 +6,22 @@
 # 设置代理
 export http_proxy=http://127.0.0.1:10818
 export https_proxy=http://127.0.0.1:10818
+# brew install gradle
+# gradle --version
+# gradle dependencies
+# start
+# ./gradlew bootRun 
+# 
+# run gradle with hot reload
+# 1. open one terminal, run：
+gradle build --continuous
+# 2. open second terminal, run:
+gradle bootRun
+
 # 查询具体的任务信息的帮助
 ./gradlew help --task bootRun
 # 启动Spring Boot
-./gradlew bootRun
+# ./gradlew bootRun
 # gradle bootRun
 # 编译可执行jar包
 ./gradlew bootJar
@@ -17,6 +29,7 @@ export https_proxy=http://127.0.0.1:10818
 ./gradlew clean
 # 执行测试的任务：test
 ./gradlew test
+# 
 # 运行 ./gradlew bootRun 启动后，浏览器打开：http://localhost:8090/
 # 首次自动跳转 http://localhost:8090/console/setup
 # 管理后台地址 http://localhost:8090/console/dashboard

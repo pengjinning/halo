@@ -44,6 +44,10 @@ halo:
   work-dir: ${user.home}/.halo2
   plugin:
     plugins-root: ${halo.work-dir}/plugins
+    runtime-mode: development
+    fixed-plugin-path:
+      # 配置为插件绝对路径
+      - /Users/ningjinpeng/Desktop/git/github/im/bytedesk-plugin-starter
   attachment:
     resource-mappings:
       - pathPattern: /upload/**
