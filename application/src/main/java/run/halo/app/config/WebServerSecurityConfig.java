@@ -5,8 +5,11 @@ import static org.springframework.security.web.server.authentication.ServerWebEx
 import static org.springframework.security.web.server.util.matcher.ServerWebExchangeMatchers.pathMatchers;
 
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.boot.autoconfigure.session.SessionProperties;
+import org.springframework.boot.autoconfigure.web.ServerProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.Ordered;
@@ -23,6 +26,8 @@ import org.springframework.security.web.server.context.ServerSecurityContextRepo
 import org.springframework.security.web.server.context.WebSessionServerSecurityContextRepository;
 import org.springframework.security.web.server.util.matcher.AndServerWebExchangeMatcher;
 import org.springframework.security.web.server.util.matcher.MediaTypeServerWebExchangeMatcher;
+import org.springframework.session.MapSession;
+import org.springframework.session.config.annotation.web.server.EnableSpringWebSession;
 import org.springframework.web.reactive.function.server.RouterFunction;
 import org.springframework.web.reactive.function.server.ServerResponse;
 import run.halo.app.core.extension.service.RoleService;
@@ -30,10 +35,7 @@ import run.halo.app.core.extension.service.UserService;
 import run.halo.app.extension.ReactiveExtensionClient;
 import run.halo.app.infra.AnonymousUserConst;
 import run.halo.app.infra.properties.HaloProperties;
-import run.halo.app.plugin.extensionpoint.ExtensionGetter;
-import run.halo.app.security.DefaultServerAuthenticationEntryPoint;
 import run.halo.app.security.DefaultUserDetailService;
-import run.halo.app.security.DynamicMatcherSecurityWebFilterChain;
 import run.halo.app.security.authentication.SecurityConfigurer;
 import run.halo.app.security.authentication.login.CryptoService;
 import run.halo.app.security.authentication.login.PublicKeyRouteBuilder;
@@ -42,7 +44,10 @@ import run.halo.app.security.authentication.login.impl.RsaKeyService;
 import run.halo.app.security.authentication.pat.PatAuthenticationManager;
 import run.halo.app.security.authentication.pat.PatJwkSupplier;
 import run.halo.app.security.authentication.pat.PatServerWebExchangeMatcher;
+import run.halo.app.security.authentication.twofactor.TwoFactorAuthorizationManager;
 import run.halo.app.security.authorization.RequestInfoAuthorizationManager;
+import run.halo.app.security.session.InMemoryReactiveIndexedSessionRepository;
+import run.halo.app.security.session.ReactiveIndexedSessionRepository;
 
 /**
  * Security configuration for WebFlux.
@@ -50,6 +55,7 @@ import run.halo.app.security.authorization.RequestInfoAuthorizationManager;
  * @author johnniang
  */
 @Configuration
+@EnableSpringWebSession
 @EnableWebFluxSecurity
 @RequiredArgsConstructor
 public class WebServerSecurityConfig {
@@ -60,14 +66,17 @@ public class WebServerSecurityConfig {
         RoleService roleService,
         ObjectProvider<SecurityConfigurer> securityConfigurers,
         ServerSecurityContextRepository securityContextRepository,
-        ExtensionGetter extensionGetter,
         ReactiveExtensionClient client,
         PatJwkSupplier patJwkSupplier) {
 
         http.securityMatcher(pathMatchers("/api/**", "/apis/**", "/oauth2/**",
                 "/login/**", "/logout", "/actuator/**"))
             .authorizeExchange(spec -> {
-                spec.anyExchange().access(new RequestInfoAuthorizationManager(roleService));
+                spec.anyExchange().access(
+                    new TwoFactorAuthorizationManager(
+                        new RequestInfoAuthorizationManager(roleService)
+                    )
+                );
             })
             .anonymous(spec -> {
                 spec.authorities(AnonymousUserConst.Role);
@@ -79,17 +88,16 @@ public class WebServerSecurityConfig {
                 var authManagerResolver = builder().add(
                         new PatServerWebExchangeMatcher(),
                         new PatAuthenticationManager(client, patJwkSupplier))
-                    // TODO Add other authentication mangers here. e.g.: JwtAuthentiationManager.
+                    // TODO Add other authentication mangers here. e.g.: JwtAuthenticationManager.
                     .build();
                 oauth2.authenticationManagerResolver(authManagerResolver);
             })
-            .exceptionHandling(
-                spec -> spec.authenticationEntryPoint(new DefaultServerAuthenticationEntryPoint()));
+        ;
 
         // Integrate with other configurers separately
         securityConfigurers.orderedStream()
             .forEach(securityConfigurer -> securityConfigurer.configure(http));
-        return new DynamicMatcherSecurityWebFilterChain(extensionGetter, http.build());
+        return http.build();
     }
 
     @Bean
@@ -129,6 +137,17 @@ public class WebServerSecurityConfig {
     @Bean
     ServerSecurityContextRepository securityContextRepository() {
         return new WebSessionServerSecurityContextRepository();
+    }
+
+    @Bean
+    public ReactiveIndexedSessionRepository<MapSession> reactiveSessionRepository(
+        SessionProperties sessionProperties,
+        ServerProperties serverProperties) {
+        var repository = new InMemoryReactiveIndexedSessionRepository(new ConcurrentHashMap<>());
+        var timeout = sessionProperties.determineTimeout(
+            () -> serverProperties.getReactive().getSession().getTimeout());
+        repository.setDefaultMaxInactiveInterval(timeout);
+        return repository;
     }
 
     @Bean

@@ -12,7 +12,7 @@ import static org.springframework.boot.convert.ApplicationConversionService.getS
 import static org.springframework.core.io.buffer.DataBufferUtils.write;
 import static org.springframework.web.reactive.function.server.RequestPredicates.contentType;
 import static run.halo.app.extension.ListResult.generateGenericClass;
-import static run.halo.app.extension.router.QueryParamBuildUtil.buildParametersFromType;
+import static run.halo.app.extension.router.QueryParamBuildUtil.sortParameter;
 import static run.halo.app.extension.router.selector.SelectorUtil.labelAndFieldSelectorToPredicate;
 import static run.halo.app.infra.utils.FileUtils.deleteFileSilently;
 
@@ -42,8 +42,8 @@ import java.util.function.Supplier;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
-import org.pf4j.PluginState;
 import org.reactivestreams.Publisher;
+import org.springdoc.core.fn.builders.operation.Builder;
 import org.springdoc.webflux.core.fn.SpringdocRouteBuilder;
 import org.springframework.beans.factory.DisposableBean;
 import org.springframework.core.io.FileSystemResource;
@@ -81,6 +81,7 @@ import run.halo.app.core.extension.theme.SettingUtils;
 import run.halo.app.extension.Comparators;
 import run.halo.app.extension.ConfigMap;
 import run.halo.app.extension.ReactiveExtensionClient;
+import run.halo.app.extension.router.IListRequest;
 import run.halo.app.extension.router.IListRequest.QueryListRequest;
 import run.halo.app.infra.ReactiveUrlDataBufferFetcher;
 import run.halo.app.plugin.PluginNotFoundException;
@@ -229,7 +230,7 @@ public class PluginEndpoint implements CustomEndpoint {
                     .tag(tag)
                     .description("List plugins using query criteria and sort params")
                     .response(responseBuilder().implementation(generateGenericClass(Plugin.class)));
-                buildParametersFromType(builder, ListRequest.class);
+                ListRequest.buildParameters(builder);
             })
             .GET("plugins/{name}/setting", this::fetchPluginSetting,
                 builder -> builder.operationId("fetchPluginSetting")
@@ -297,10 +298,10 @@ public class PluginEndpoint implements CustomEndpoint {
                             // when enabled = false,excepted phase = !started
                             var phase = p.statusNonNull().getPhase();
                             if (enable) {
-                                return PluginState.STARTED.equals(phase)
-                                    || PluginState.FAILED.equals(phase);
+                                return Plugin.Phase.STARTED.equals(phase)
+                                    || Plugin.Phase.FAILED.equals(phase);
                             }
-                            return !PluginState.STARTED.equals(phase);
+                            return !Plugin.Phase.STARTED.equals(phase);
                         });
                     });
             })
@@ -655,6 +656,23 @@ public class PluginEndpoint implements CustomEndpoint {
             return comparators.stream()
                 .reduce(Comparator::thenComparing)
                 .orElse(null);
+        }
+
+        public static void buildParameters(Builder builder) {
+            IListRequest.buildParameters(builder);
+            builder.parameter(sortParameter());
+            builder.parameter(parameterBuilder()
+                    .in(ParameterIn.QUERY)
+                    .name("keyword")
+                    .description("Keyword of plugin name or description")
+                    .implementation(String.class)
+                    .required(false))
+                .parameter(parameterBuilder()
+                    .in(ParameterIn.QUERY)
+                    .name("enabled")
+                    .description("Whether the plugin is enabled")
+                    .implementation(Boolean.class)
+                    .required(false));
         }
     }
 
